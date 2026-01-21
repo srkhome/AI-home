@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宜仁居家 | AI 影片生成實戰學院</title>
+    <meta name="description" content="專注於速度與簡單的AI影片生成教學。陳日新老師團隊親自帶領，提供初階、進階及企業內訓課程。">
+    
+    <!-- Tailwind CSS (使用 CDN 快速載入) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-gradient::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+            animation: pulse 10s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- 導航欄 Navbar -->
+    <nav class="fixed w-full z-50 bg-white/95 backdrop-blur shadow-sm transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <!-- Logo (已更新為圖片模式) -->
+                <div class="flex-shrink-0 flex items-center gap-3 cursor-pointer" onclick="window.scrollTo(0,0)">
+                    <!-- 請確保 logo.png 與此 html 檔案在同一資料夾 -->
+                    <img src="logo.png" alt="宜仁居家 Logo" class="h-10 w-auto object-contain">
+                    <div>
+                        <h1 class="font-bold text-xl text-slate-800 tracking-wide">宜仁居家</h1>
+                        <p class="text-xs text-slate-500 tracking-widest">AI 影片實戰學院</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#philosophy" class="text-gray-600 hover:text-blue-600 font-medium transition">核心理念</a>
+                    <a href="#courses" class="text-gray-600 hover:text-blue-600 font-medium transition">課程方案</a>
+                    <!-- 已移除 AI 每週報連結 -->
+                    <a href="#contact" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition shadow-lg hover:shadow-blue-500/30">
+                        聯絡陳老師團隊
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-blue-600 focus:outline-none">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Panel -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full">
+            <div class="px-4 pt-2 pb-6 space-y-2 shadow-lg">
+                <a href="#philosophy" class="block px-3 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">核心理念</a>
+                <a href="#courses" class="block px-3 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md">課程方案</a>
+                <!-- 已移除 AI 每週報連結 -->
+                <a href="#contact" class="block px-3 py-3 text-base font-medium text-blue-600 font-bold bg-blue-50 rounded-md">聯絡我們</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section: 首頁主視覺 -->
+    <section class="hero-gradient min-h-screen flex items-center pt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-16">
+            <!-- 修改為單欄置中佈局 -->
+            <div class="flex flex-col items-center justify-center text-center max-w-4xl mx-auto">
+                <div class="text-white space-y-8 z-10">
+                    <div class="inline-block bg-blue-500/20 text-blue-300 px-4 py-1 rounded-full text-sm font-semibold border border-blue-400/30">
+                        <i class="fas fa-bolt mr-2"></i> 2026 最新 AI 趨勢
+                    </div>
+                    <h1 class="text-4xl md:text-6xl font-black leading-tight">
+                        影片製作<br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">不需要美術背景</span>
+                    </h1>
+                    <p class="text-xl text-slate-300 leading-relaxed font-light max-w-2xl mx-auto">
+                        我們不教複雜的剪輯軟體，我們教你如何用 AI 實現創意。<br>
+                        重點在於 <strong class="text-white border-b-2 border-blue-500 pb-1">速度</strong> 與 <strong class="text-white border-b-2 border-blue-500 pb-1">簡單</strong>，讓您的業務推廣快人一步。
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4 justify-center">
+                        <a href="#contact" class="bg-blue-600 text-white px-8 py-4 rounded-xl text-center font-bold hover:bg-blue-500 transition shadow-lg shadow-blue-600/30">
+                            立即諮詢課程
+                        </a>
+                        <a href="#courses" class="bg-white/10 backdrop-blur text-white border border-white/20 px-8 py-4 rounded-xl text-center font-bold hover:bg-white/20 transition">
+                            了解班級分類
+                        </a>
+                    </div>
+                </div>
+                <!-- 示意圖區塊已完全移除 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心理念 Section -->
+    <section id="philosophy" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">為什麼選擇宜仁居家 AI 學院？</h2>
+                <div class="w-20 h-1 bg-blue-600 mx-auto rounded-full"></div>
+                <p class="mt-6 text-lg text-gray-600 max-w-3xl mx-auto">
+                    市面上的課程教您成為藝術家，而我們教您成為<span class="font-bold text-blue-600">高效率的生產者</span>。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 特點 1 -->
+                <div class="feature-card bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center">
+                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-6">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">極致速度</h3>
+                    <p class="text-gray-600">
+                        拋棄繁瑣的時間軸剪輯。透過 AI 輔助，將傳統數天的製作流程縮短至數分鐘，快速響應市場熱點。
+                    </p>
+                </div>
+
+                <!-- 特點 2 -->
+                <div class="feature-card bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-yellow-400 text-xs font-bold px-2 py-1 rounded-bl-lg text-yellow-900">核心價值</div>
+                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-6">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">操作簡單</h3>
+                    <p class="text-gray-600">
+                        不需要美術編輯背景，不需要昂貴的硬體設備。只要會打字、會構思，AI 就是您最強的影片製作團隊。
+                    </p>
+                </div>
+
+                <!-- 特點 3 -->
+                <div class="feature-card bg-slate-50 p-8 rounded-2xl border border-slate-100 text-center">
+                    <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-6">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">商業落地</h3>
+                    <p class="text-gray-600">
+                        不僅是技術教學，更結合陳日新老師團隊的實戰經驗，教您如何將 AI 影片應用於行銷、導覽與業務開發。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 課程方案 Section -->
+    <section id="courses" class="py-20 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <span class="text-blue-400 font-semibold tracking-wider uppercase text-sm">Class Overview</span>
+                <h2 class="text-3xl md:text-4xl font-bold mt-2">多元化課程體系</h2>
+                <p class="text-slate-400 mt-4">從個人入門到企業賦能，滿足不同階段的需求</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- 初階班 -->
+                <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 hover:border-blue-500 transition-colors duration-300 flex flex-col">
+                    <div class="mb-4">
+                        <span class="bg-slate-700 text-white text-xs font-bold px-3 py-1 rounded-full">入門首選</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">AI 影片初階班</h3>
+                    <p class="text-slate-400 text-sm mb-6">適合對 AI 完全陌生，想要快速體驗生成樂趣的朋友。</p>
+                    <ul class="space-y-4 mb-8 flex-1 text-slate-300">
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check text-blue-500"></i> AI 腳本生成
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check text-blue-500"></i> 數字人與語音合成
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check text-blue-500"></i> 手機影音編輯軟體快速成片
+                        </li>
+                    </ul>
+                    <a href="ai1.html" class="block w-full py-3 rounded-lg border border-slate-600 text-center hover:bg-slate-700 transition">
+                        課程內容
+                    </a>
+                </div>
+
+                <!-- 進階班 -->
+                <div class="bg-gradient-to-b from-blue-900/50 to-slate-800 rounded-2xl p-8 border border-blue-500/50 shadow-xl shadow-blue-900/20 transform md:-translate-y-4 flex flex-col">
+                    <div class="mb-4 flex justify-between items-center">
+                        <span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">最熱門</span>
+                        <i class="fas fa-star text-yellow-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">AI 影片進階班</h3>
+                    <p class="text-blue-200 text-sm mb-6">適合需要穩定產出內容的創作者或個人品牌經營者。</p>
+                    <ul class="space-y-4 mb-8 flex-1 text-slate-200">
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-blue-400"></i> 直式轉橫式，手機變身電視台！
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-blue-400"></i> 一鍵去背換景，零成本打造百萬攝影棚！
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-blue-400"></i> AI 網感模版，精準引流超吸睛！
+                        </li>
+                    </ul>
+                    <a href="ai2.html" class="block w-full py-3 rounded-lg bg-blue-600 text-white font-bold text-center hover:bg-blue-500 transition shadow-lg">
+                        課程內容
+                    </a>
+                </div>
+
+                <!-- 企業班 (已更新為 AI 影片教練班) -->
+                <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 hover:border-blue-500 transition-colors duration-300 flex flex-col">
+                    <div class="mb-4">
+                        <span class="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">高階賦能</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">AI 影片教練班</h3>
+                    <p class="text-slate-400 text-sm mb-6">一對一深度指導，將您的專業與故事轉化為變現資產。</p>
+                    <ul class="space-y-4 mb-8 flex-1 text-slate-300">
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-purple-500"></i> 黃金比例說故事，感性理性都變現！
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-purple-500"></i> 人生經歷變黃金，打造品牌最吸睛！
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-purple-500"></i> 開群就是開好店，AI 助攻自動賺！
+                        </li>
+                    </ul>
+                    <a href="ai3.html" class="block w-full py-3 rounded-lg border border-slate-600 text-center hover:bg-slate-700 transition">
+                        課程內容
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 原 AI 每週報 Section 已移除 -->
+
+    <!-- 聯絡/Footer Section -->
+    <section id="contact" class="bg-slate-900 text-white py-20 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div>
+                    <!-- Footer Logo (已更新為圖片模式) -->
+                    <div class="flex items-center gap-3 mb-6">
+                        <img src="logo.png" alt="宜仁居家 Logo" class="h-12 w-auto bg-white rounded-lg p-1">
+                        <span class="text-2xl font-bold">宜仁居家</span>
+                    </div>
+                    <p class="text-slate-400 mb-8 leading-relaxed">
+                        我們致力於將最前沿的 AI 技術轉化為最簡單易懂的語言。無論您是個人創作者還是企業主，讓我們幫助您掌握未來的影像生產力。
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-green-500 transition"><i class="fab fa-line"></i></a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-bold mb-6 border-l-4 border-blue-500 pl-3">聯絡資訊</h3>
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-blue-500 flex-shrink-0">
+                                <i class="fas fa-user-tie text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-400">課程講師</p>
+                                <p class="text-xl font-bold">陳日新老師團隊</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-green-500 flex-shrink-0">
+                                <i class="fas fa-phone-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-400">諮詢專線</p>
+                                <a href="tel:0919821208" class="text-2xl font-bold hover:text-green-400 transition">0919-821-208</a>
+                                <p class="text-xs text-slate-500 mt-1">歡迎來電詢問課程詳情</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mt-4">
+                            <p class="text-sm text-slate-300">
+                                <i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                                想要提升效率？現在就撥打電話，讓我們為您安排最適合的學習路徑。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-800 mt-16 pt-8 text-center text-slate-500 text-sm">
+                <p>&copy; 2026 宜仁居家有限公司 Yi-Ren Home Co., Ltd. All Rights Reserved.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript for Mobile Menu & Interactions -->
+    <script>
+        // Mobile Menu Toggle
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+
+        btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu when clicking a link
+        menu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menu.classList.add('hidden');
+            });
+        });
+
+        // Navbar Scroll Effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('shadow-md');
+                navbar.classList.replace('py-4', 'py-0'); // Compact height
+            } else {
+                navbar.classList.remove('shadow-md');
+            }
+        });
+
+        // Smooth scroll for anchor links (safeguard for older browsers)
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

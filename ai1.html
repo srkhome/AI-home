@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工具操作流程</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f2f5;
+            overflow-x: hidden;
+        }
+
+        /* --- 3D 卡片核心 CSS --- */
+        
+        .card-container {
+            perspective: 1000px; /* 3D 透視深度 */
+        }
+
+        .card {
+            width: 100%;
+            /* 撲克牌黃金比例 */
+            aspect-ratio: 2.5 / 3.5; 
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 更有彈性的翻轉動畫 */
+            cursor: pointer;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* 正反面共同設定 */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            /* 關鍵：隱藏背面，防止透視 */
+            -webkit-backface-visibility: hidden; 
+            backface-visibility: hidden;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* 正面樣式 */
+        .card-front {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            /* 確保背景不透明 */
+            background-color: #fff; 
+        }
+
+        /* 背面樣式 */
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: #ffffff; /* 純白實色背景，防止透視 */
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            text-align: justify; /* 文字左右對齊，更整齊 */
+            overflow-y: auto;
+            color: #374151;
+            /* 加上微弱的紙張紋理感 */
+            background-image: linear-gradient(#f3f4f6 1px, transparent 1px), linear-gradient(90deg, #f3f4f6 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 隱藏捲軸 */
+        .card-back::-webkit-scrollbar { width: 4px; }
+        .card-back::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 4px; }
+
+        /* 特定主題配色 */
+        /* ChatGPT - Green */
+        .theme-chatgpt .card-front { border-bottom: 6px solid #10a37f; }
+        .theme-chatgpt .icon-box { background-color: #10a37f; color: white; }
+        .theme-chatgpt .card-back h3 { color: #10a37f; border-bottom-color: #10a37f; }
+
+        /* Gemini - Blue/Purple */
+        .theme-gemini .card-front { border-bottom: 6px solid #4E8cff; }
+        .theme-gemini .icon-box { background: linear-gradient(45deg, #4E8cff, #9b6dff); color: white; }
+        .theme-gemini .card-back h3 { color: #4E8cff; border-bottom-color: #4E8cff; }
+
+        /* Dreamface - Amber */
+        .theme-dreamface .card-front { border-bottom: 6px solid #f59e0b; }
+        .theme-dreamface .icon-box { background-color: #f59e0b; color: white; }
+        .theme-dreamface .card-back h3 { color: #d97706; border-bottom-color: #f59e0b; }
+
+        /* KaiPai - Pink */
+        .theme-kaipai .card-front { border-bottom: 6px solid #ec4899; }
+        .theme-kaipai .icon-box { background-color: #ec4899; color: white; }
+        .theme-kaipai .card-back h3 { color: #db2777; border-bottom-color: #ec4899; }
+
+        .content-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            /* 讓文字自然換行 */
+            white-space: normal; 
+            word-break: break-all;
+        }
+
+        .click-hint {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.8rem;
+            opacity: 0.5;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-5px);}
+            60% {transform: translateY(-3px);}
+        }
+
+        /* 角落數字 */
+        .corner-symbol {
+            position: absolute;
+            font-size: 1.25rem;
+            font-weight: 800;
+            opacity: 0.3;
+        }
+        .top-left { top: 15px; left: 15px; }
+        .bottom-right { bottom: 15px; right: 15px; transform: rotate(180deg); }
+
+        /* 回首頁按鈕樣式優化 */
+        .home-btn {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-12 px-4 relative">
+
+    <!-- 回首頁按鈕 -->
+    <a href="index.html" class="home-btn fixed top-4 left-4 z-50 bg-white/80 hover:bg-white text-gray-700 hover:text-blue-600 px-5 py-2.5 rounded-full shadow-lg border border-gray-200 transition-all duration-300 flex items-center gap-2 text-sm font-bold group">
+        <i class="fas fa-home group-hover:scale-110 transition-transform"></i>
+        <span>回首頁</span>
+    </a>
+
+    <header class="text-center mb-12 mt-4">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">AI 影片生成工作流</h1>
+        <p class="text-gray-500">點擊卡片翻轉查看詳細指令</p>
+    </header>
+
+    <!-- 響應式網格 -->
+    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-7xl">
+
+        <!-- Card 1: ChatGPT -->
+        <div class="card-container theme-chatgpt">
+            <div class="card" onclick="this.classList.toggle('is-flipped')">
+                <div class="card-face card-front">
+                    <span class="corner-symbol top-left">01</span>
+                    <div class="icon-box w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-md transition-transform transform hover:scale-110">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">ChatGPT</h2>
+                    <p class="text-gray-500 mt-1">文案生成</p>
+                    <div class="click-hint">翻轉查看指令</div>
+                    <span class="corner-symbol bottom-right">01</span>
+                </div>
+                <div class="card-face card-back">
+                    <h3 class="text-lg font-bold mb-4 border-b-2 pb-2">APP 1 【 ChatGpt 】</h3>
+                    <div class="content-text">
+                        貼1張DM貼【指令1】根據以上內容整理成200字文案，一開始要有反差有情境人物對話。強調畫面、比喻、數字故事行銷元素。然後貼上【指令3】請根據以上內容，給我讓 Nano banana 製作DM的指令。要有1位正面美女的圖片。會出現一大串的文字把以上文字【複製】
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Gemini -->
+        <div class="card-container theme-gemini">
+            <div class="card" onclick="this.classList.toggle('is-flipped')">
+                <div class="card-face card-front">
+                    <span class="corner-symbol top-left">02</span>
+                    <div class="icon-box w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-md transition-transform transform hover:scale-110">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">Gemini</h2>
+                    <p class="text-gray-500 mt-1">圖片生成</p>
+                    <div class="click-hint">翻轉查看指令</div>
+                    <span class="corner-symbol bottom-right">02</span>
+                </div>
+                <div class="card-face card-back">
+                    <h3 class="text-lg font-bold mb-4 border-b-2 pb-2">APP 2 【 Gemini 】</h3>
+                    <div class="content-text">
+                        複製貼到對話框裡面。1.右下【快捷】改【 2.刪最後幾句話(如果...) 3.貼上【指令4】請直接生成1張A4大小DM，主播換成這張照片並加上產品照 4.按左下【】貼照片及產品照，然後發送出去【AI視頻】【指令2】讓他雙手自然動起來如同演講一樣的自然
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Dreamface -->
+        <div class="card-container theme-dreamface">
+            <div class="card" onclick="this.classList.toggle('is-flipped')">
+                <div class="card-face card-front">
+                    <span class="corner-symbol top-left">03</span>
+                    <div class="icon-box w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-md transition-transform transform hover:scale-110">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">數字人</h2>
+                    <p class="text-gray-500 mt-1">Dreamface</p>
+                    <div class="click-hint">翻轉查看指令</div>
+                    <span class="corner-symbol bottom-right">03</span>
+                </div>
+                <div class="card-face card-back">
+                    <h3 class="text-lg font-bold mb-4 border-b-2 pb-2">APP 3 【 Dreamface ]</h3>
+                    <div class="content-text">
+                        點綠色【數字人唱演】按【+】選【會動AI主播】按【讓角色說話唱歌】【輸入】貼OK 文案，按【選擇聲音】動畫效果按【1.0】按【 【 】儲存手機主播對嘴說話但沒字幕
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: KaiPai -->
+        <div class="card-container theme-kaipai">
+            <div class="card" onclick="this.classList.toggle('is-flipped')">
+                <div class="card-face card-front">
+                    <span class="corner-symbol top-left">04</span>
+                    <div class="icon-box w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-md transition-transform transform hover:scale-110">
+                        <i class="fas fa-film"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">組裝廠</h2>
+                    <p class="text-gray-500 mt-1">開拍 (KaiPai)</p>
+                    <div class="click-hint">翻轉查看指令</div>
+                    <span class="corner-symbol bottom-right">04</span>
+                </div>
+                <div class="card-face card-back">
+                    <h3 class="text-lg font-bold mb-4 border-b-2 pb-2">APP4【開拍】</h3>
+                    <div class="content-text">
+                        點撃左上角【 選剛下載【AI主播】按右下角藍色【開始剪輯】看到畫面直接按下方【剪輯】找到上方的【T文字】打聯絡方式點中間粉紅色軌道列按下方【撐滿時長】按【 】【到相簿】加【Qrcode】按軌道列左右【反白】手動拉長加背景音樂→剪輯旁邊【聲音】左上方【音楽】【匯入音樂】→按勾勾
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer 修改：將 Logo 加入並置中對齊 -->
+    <footer class="mt-16 mb-8 text-gray-400 text-sm flex items-center justify-center gap-3">
+        <!-- Logo 縮小並放在文字前面 -->
+        <img src="logo.PNG" alt="Logo" class="h-8 object-contain opacity-80 grayscale hover:grayscale-0 transition-all">
+        <span>© 宜仁居家有限公司 | AI 影片生成教學</span>
+    </footer>
+
+    <script>
+        // 鍵盤無障礙支援
+        document.querySelectorAll('.card').forEach(card => {
+            card.setAttribute('tabindex', '0');
+            card.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.classList.toggle('is-flipped');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
