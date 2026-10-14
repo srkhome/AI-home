@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>沈浸式作品展示與動態過場系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#131c2e',
+                        accentGold: '#f59e0b',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        .cinzel-font { font-family: 'Cinzel', serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+        .filmstrip-container {
+            display: flex;
+            gap: 2rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding: 2rem 1rem;
+            scroll-behavior: smooth;
+        }
+        .film-frame {
+            flex: 0 0 auto;
+            width: 85vw;
+            max-width: 750px;
+            scroll-snap-align: center;
+            background: #111827;
+            border: 8px solid #1f2937;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .film-frame::before, .film-frame::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 18px;
+            background: repeating-linear-gradient(90deg, #111827, #111827 20px, #0b0f19 20px, #0b0f19 35px);
+            z-index: 10;
+        }
+        .film-frame::before { top: -14px; }
+        .film-frame::after { bottom: -14px; }
+
+        .book-container {
+            perspective: 2000px;
+            width: 100%;
+            max-width: 900px;
+            height: 520px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .book-page {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-style: preserve-3d;
+            transform-origin: left center;
+            transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1);
+            backface-visibility: hidden;
+            display: none;
+        }
+        .book-page.active { display: block; transform: rotateY(0deg); z-index: 5; }
+        .book-page.flipped { display: block; transform: rotateY(-180deg); z-index: 1; }
+
+        .glass-modal {
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(16px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-white">
+
+    <header class="sticky top-0 z-50 bg-darkBg/90 backdrop-blur-md border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('showcase')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-clapperboard text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="cinzel-font font-bold text-xl tracking-wider text-white">IMPERIA <span class="text-amber-500 text-xs uppercase block tracking-widest">Video Reel & Gallery · v8-idb</span></h1>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <button onclick="switchView('showcase')" id="nav-showcase-btn" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center space-x-2">
+                    <i class="fa-solid fa-eye"></i>
+                    <span class="hidden sm:inline">作品展示大廳</span>
+                </button>
+                <button onclick="switchView('videoreel')" id="nav-videoreel-btn" class="px-4 py-2 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60 flex items-center space-x-2">
+                    <i class="fa-solid fa-video"></i>
+                    <span class="hidden sm:inline">影片合成播放器</span>
+                </button>
+                <button onclick="switchView('admin')" id="nav-admin-btn" class="px-4 py-2 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60 flex items-center space-x-2">
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="hidden sm:inline">後台管理系統</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ==================== SHOWCASE VIEW ==================== -->
+        <div id="view-showcase" class="space-y-8">
+            <div class="bg-gradient-to-r from-cardBg via-gray-900 to-cardBg border border-gray-800 rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-2xl">
+                <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-20 -top-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div class="space-y-4 max-w-2xl text-center md:text-left">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>沈浸式動態多媒體體驗</span>
+                        </div>
+                        <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight cinzel-font">
+                            視覺藝術與影像交織
+                        </h2>
+                        <p class="text-gray-400 text-sm sm:text-base leading-relaxed">
+                            透過獨特的動態過場演繹，探索精選的數位藝術海報、影音短片與設計專案。您也可以將所有上傳的素材一鍵融合成完整影片，自由調整照片與影片時長！
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-3 bg-darkBg/80 p-2 rounded-2xl border border-gray-800 shadow-inner">
+                        <button onclick="setTransitionMode('flip')" id="mode-flip-btn" class="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center space-x-2 bg-amber-500 text-darkBg shadow-lg shadow-amber-500/30">
+                            <i class="fa-solid fa-book-open"></i>
+                            <span>書本翻頁模式</span>
+                        </button>
+                        <button onclick="setTransitionMode('film')" id="mode-film-btn" class="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center space-x-2 text-gray-400 hover:text-white">
+                            <i class="fa-solid fa-film"></i>
+                            <span>膠捲底片模式</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="showcase-display-area" class="min-h-[550px] flex items-center justify-center"></div>
+        </div>
+
+        <!-- ==================== VIDEO REEL SYNTHESIS VIEW ==================== -->
+        <div id="view-videoreel" class="hidden space-y-8">
+            <div class="bg-gradient-to-r from-cardBg via-gray-900 to-cardBg border border-gray-800 p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold mb-2">
+                        <i class="fa-solid fa-clapperboard"></i>
+                        <span>影片合成工作室</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white cinzel-font">所有上傳素材影片合成播放器</h2>
+                    <p class="text-gray-400 text-sm mt-1">照片預設 5 秒，影片可自訂播放時長（5s, 10s, 15s 或完整播放），自動串聯為一首流暢的影片大片。</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="startVideoReelPlay()" class="px-6 py-3 rounded-2xl bg-amber-500 text-darkBg font-bold text-sm shadow-lg shadow-amber-500/30 hover:brightness-110 transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-play"></i>
+                        <span>播放合成影片</span>
+                    </button>
+                    <button onclick="exportVideoReel()" class="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 hover:brightness-110 transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-download"></i>
+                        <span>匯出專案影片</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-cardBg border border-gray-800 rounded-3xl p-6 shadow-2xl flex flex-col space-y-6">
+                    <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-gray-800 group">
+                        <div id="reel-screen-content" class="w-full h-full flex items-center justify-center relative">
+                            <div class="text-center space-y-3 p-6">
+                                <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-2xl">
+                                    <i class="fa-solid fa-film"></i>
+                                </div>
+                                <h3 class="text-white font-bold text-lg">準備就緒</h3>
+                                <p class="text-gray-400 text-xs">點擊上方「播放合成影片」或右側素材開始沈浸式自動連播。</p>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between text-white pointer-events-none">
+                            <div class="flex items-center space-x-3 pointer-events-auto">
+                                <button id="reel-play-pause-btn" onclick="toggleReelPlayPause()" class="w-10 h-10 rounded-xl bg-amber-500 text-darkBg flex items-center justify-center font-bold shadow-md hover:scale-105 transition-transform">
+                                    <i class="fa-solid fa-play"></i>
+                                </button>
+                                <div>
+                                    <div id="reel-current-title" class="text-xs font-bold">尚未開始</div>
+                                    <div id="reel-time-counter" class="text-[10px] text-gray-400">00:00 / 00:00</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-amber-400 font-mono bg-black/60 px-3 py-1 rounded-full border border-gray-700">
+                                <span id="reel-progress-text">片段 0 / 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span>合成影片時間軸進度</span>
+                            <span id="reel-total-duration">總計時長: 0s</span>
+                        </div>
+                        <div class="w-full h-3 bg-darkBg rounded-full overflow-hidden border border-gray-800 p-0.5">
+                            <div id="reel-timeline-bar" class="h-full bg-gradient-to-r from-amber-500 to-indigo-500 rounded-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-cardBg border border-gray-800 rounded-3xl p-6 shadow-2xl flex flex-col space-y-4 max-h-[650px] overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                        <h3 class="font-bold text-white text-base">影片播放清單與時長設定</h3>
+                        <span id="reel-item-count" class="px-2.5 py-0.5 bg-gray-800 text-gray-300 rounded-full text-xs">0 個素材</span>
+                    </div>
+                    <div id="reel-playlist-container" class="overflow-y-auto space-y-3 pr-1 flex-grow"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ADMIN VIEW ==================== -->
+        <div id="view-admin" class="hidden space-y-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-cardBg border border-gray-800 p-6 rounded-3xl shadow-xl">
+                <div>
+                    <h2 class="text-2xl font-bold text-white cinzel-font flex items-center space-x-3">
+                        <i class="fa-solid fa-sliders text-amber-500"></i>
+                        <span>後台作品管理中心</span>
+                    </h2>
+                    <p class="text-gray-400 text-sm mt-1">即時新增、編輯或刪除作品與影片時長設定，資料將同步更新至展示大廳與影片合成播放器。</p>
+                </div>
+                <button onclick="openProjectModal()" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-darkBg font-bold text-sm shadow-lg shadow-amber-500/20 hover:brightness-110 transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-plus text-base"></i>
+                    <span>新增專案作品</span>
+                </button>
+            </div>
+
+            <div class="bg-cardBg border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
+                <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+                    <h3 class="font-bold text-white text-lg">現有作品清單</h3>
+                    <span id="admin-item-count" class="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-medium">0 個作品</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-900/60 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-800">
+                                <th class="p-4 sm:px-6">海報 / 縮圖</th>
+                                <th class="p-4 sm:px-6">作品標題與分類</th>
+                                <th class="p-4 sm:px-6">媒體類型與播放時長設定</th>
+                                <th class="p-4 sm:px-6">建立時間</th>
+                                <th class="p-4 sm:px-6 text-right">動作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-projects-table" class="divide-y divide-gray-800/60 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Project Edit / Add Modal -->
+    <div id="project-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-modal">
+        <div class="bg-cardBg border border-gray-700/80 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+                <h3 id="modal-title" class="text-xl font-bold text-white cinzel-font">新增作品</h3>
+                <button type="button" onclick="closeProjectModal()" class="w-9 h-9 rounded-xl bg-gray-800 text-gray-400 hover:text-white flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="project-form" onsubmit="saveProject(event)" class="p-6 space-y-5 overflow-y-auto">
+                <input type="hidden" id="project-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">作品標題</label>
+                        <input type="text" id="project-title" required class="w-full bg-darkBg border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500 transition-all" placeholder="例如：賽博龐克城市漫游">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">分類標籤</label>
+                        <input type="text" id="project-category" required class="w-full bg-darkBg border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500 transition-all" placeholder="例如：視覺特效 / 3D 動畫">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">上傳海報圖片 (選填，若未上傳將自動擷取影片縮圖)</label>
+                    <div class="flex items-center space-x-3">
+                        <label class="flex-grow cursor-pointer bg-darkBg border border-gray-700 hover:border-amber-500 rounded-xl px-4 py-3 text-gray-300 text-sm flex items-center justify-between transition-all">
+                            <span id="image-file-label" class="truncate">選擇圖片檔案 (JPG, PNG)...</span>
+                            <i class="fa-solid fa-upload text-amber-500"></i>
+                            <input type="file" id="project-image-file" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
+                        </label>
+                    </div>
+                    <input type="url" id="project-image" class="w-full bg-darkBg border border-gray-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500 transition-all mt-2" placeholder="或直接輸入圖片網址 (https://...)">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">上傳影片檔案 (從手機或電腦選擇 - 建議 H.264 MP4)</label>
+                    <div class="flex items-center space-x-3">
+                        <label class="flex-grow cursor-pointer bg-darkBg border border-gray-700 hover:border-amber-500 rounded-xl px-4 py-3 text-gray-300 text-sm flex items-center justify-between transition-all">
+                            <span id="video-file-label" class="truncate">選擇影片檔案 (MP4, WebM)...</span>
+                            <i class="fa-solid fa-video text-indigo-400"></i>
+                            <input type="file" id="project-video-file" accept="video/*" class="hidden" onchange="handleVideoFileSelect(event)">
+                        </label>
+                    </div>
+                    <input type="url" id="project-video" class="w-full bg-darkBg border border-gray-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500 transition-all mt-2" placeholder="或直接輸入影片網址 (https://...)">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">照片播放時長設定</label>
+                        <select id="project-photo-duration" class="w-full bg-darkBg border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500 transition-all">
+                            <option value="5">5 秒 (預設)</option>
+                            <option value="10">10 秒</option>
+                            <option value="15">15 秒</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">影片播放時長設定</label>
+                        <select id="project-video-duration" class="w-full bg-darkBg border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500 transition-all">
+                            <option value="5">5 秒</option>
+                            <option value="10">10 秒</option>
+                            <option value="15">15 秒</option>
+                            <option value="full">完整播放 (預設)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-gray-300 uppercase tracking-wider">作品詳細說明</label>
+                    <textarea id="project-description" rows="3" required class="w-full bg-darkBg border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500 transition-all resize-none" placeholder="輸入關於此作品的創作理念、技術背景與過場特效亮點..."></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-800">
+                    <button type="button" onclick="closeProjectModal()" class="px-5 py-2.5 rounded-xl bg-gray-800 text-gray-300 hover:text-white text-sm font-medium transition-all">取消</button>
+                    <button type="submit" id="save-project-btn" class="px-6 py-2.5 rounded-xl bg-amber-500 text-darkBg hover:bg-amber-400 text-sm font-bold transition-all shadow-lg shadow-amber-500/20">儲存作品</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-modal">
+        <div class="bg-cardBg border border-gray-700 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-center">
+            <div class="w-14 h-14 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white cinzel-font">確認刪除作品</h3>
+            <p id="delete-modal-text" class="text-gray-300 text-sm">您確定要刪除這個作品嗎？此動作無法復原。</p>
+            <div class="flex items-center justify-center space-x-3 pt-2">
+                <button onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl bg-gray-800 text-gray-300 hover:text-white text-sm font-medium transition-all w-full">取消</button>
+                <button id="confirm-delete-btn" class="px-5 py-2.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 text-sm font-bold transition-all w-full shadow-lg shadow-rose-600/30">確認刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-[60] transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-900 border border-gray-700 px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-sm text-white">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message">操作成功</span>
+    </div>
+
+    <script>
+        // ==================== 工具函式 ====================
+        // HTML 跳脫，避免標題 / 網址破壞版面或造成 XSS
+        function esc(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function fmtTime(sec) {
+            sec = Math.max(0, Math.floor(sec));
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+
+        // ==================== IndexedDB 檔案儲存 ====================
+        // 影片 / 圖片檔案以 Blob 形式存在 IndexedDB，重新整理後仍可播放
+        const DB_NAME = 'imperia_media_db';
+        const STORE = 'files';
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        // 依副檔名推測影片 MIME（手機檔案常常 file.type 是空字串，會導致無法播放）
+        function guessVideoType(file) {
+            if (file.type && file.type.startsWith('video/')) return file.type;
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const map = { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime',
+                          webm: 'video/webm', ogv: 'video/ogg', mkv: 'video/x-matroska',
+                          '3gp': 'video/3gpp' };
+            return map[ext] || 'video/mp4';
+        }
+
+        // 底層寫入：rec 由呼叫端決定格式
+        async function idbPut(key, rec) {
+            const db = await openDB();
+            return new Promise((res, rej) => {
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).put(rec, key);
+                tx.oncomplete = () => res();
+                tx.onerror = () => rej(tx.error);
+                tx.onabort = () => rej(tx.error);
+            });
+        }
+
+        // 讀取並還原成 Blob（相容多種儲存格式）
+        async function getFile(key) {
+            const db = await openDB();
+            const rec = await new Promise((res, rej) => {
+                const req = db.transaction(STORE).objectStore(STORE).get(key);
+                req.onsuccess = () => res(req.result);
+                req.onerror = () => rej(req.error);
+            });
+            if (!rec) return null;
+            if (rec instanceof Blob) return rec;                                   // 最早期格式
+            if (rec.kind === 'blob') return rec.blob;                              // 直接存 Blob
+            if (rec.kind === 'chunks') return new Blob(rec.chunks, { type: rec.type }); // 分塊
+            if (rec.buf) return new Blob([rec.buf], { type: rec.type });           // ArrayBuffer 格式
+            return null;
+        }
+
+        // 驗證寫入的資料真的「可讀」：大小一致，且頭尾各讀一小段不會出錯
+        async function verifyStored(key, size) {
+            const back = await getFile(key);
+            if (!back || back.size !== size) return false;
+            await back.slice(0, Math.min(1024, size)).arrayBuffer();
+            await back.slice(Math.max(0, size - 1024), size).arrayBuffer();
+            return true;
+        }
+
+        // 將 MediaError 轉成人看得懂的原因
+        function describeMediaError(v) {
+            if (v && v.src === MISSING_URL) {
+                return '本機影片檔案無法從瀏覽器儲存讀取（儲存失敗、被清除，或此環境不支援 IndexedDB），請重新上傳';
+            }
+            const e = v && v.error;
+            if (!e) return '未知錯誤';
+            const map = {
+                1: '載入被中止',
+                2: '網路錯誤（網址無法連線或被封鎖）',
+                3: '解碼失敗（檔案損毀或編碼瀏覽器無法解碼，常見於 HEVC/H.265）',
+                4: '不支援的格式或來源無效（檔案遺失、網址失效，或編碼不支援）'
+            };
+            return `錯誤碼 ${e.code}：${map[e.code] || e.message || '未知'}`;
+        }
+        async function deleteFile(key) {
+            const db = await openDB();
+            return new Promise((res) => {
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).delete(key);
+                tx.oncomplete = () => res();
+                tx.onerror = () => res();
+            });
+        }
+
+        const MISSING_URL = 'blob:imperia-missing-file';
+
+        // 儲存媒體：依序嘗試多種方式寫入 IndexedDB，每種都讀回驗證。
+        //  A. 直接存 Blob（瀏覽器內部處理，不需把整個檔案讀進 JS 記憶體）
+        //  B. 分塊讀取（每塊 8MB）再存
+        // 無論是否持久化成功，本次使用期間都用原始檔案建立播放網址，確保「當下」一定能播放。
+        async function storeMedia(key, blob, type) {
+            dropUrlCache(key);
+            const typed = (blob.type === type) ? blob : new Blob([blob], { type });
+            let persisted = false;
+            let method = '';
+
+            try {
+                await idbPut(key, { kind: 'blob', blob: typed, type });
+                if (await verifyStored(key, blob.size)) { persisted = true; method = '直接儲存'; }
+            } catch (e) {
+                console.warn('儲存方式 A（直接存 Blob）失敗：', e);
+            }
+
+            if (!persisted) {
+                try {
+                    const STEP = 8 * 1024 * 1024;
+                    const chunks = [];
+                    for (let i = 0; i < blob.size; i += STEP) {
+                        chunks.push(await blob.slice(i, i + STEP).arrayBuffer());
+                    }
+                    await idbPut(key, { kind: 'chunks', chunks, type });
+                    if (await verifyStored(key, blob.size)) { persisted = true; method = '分塊儲存'; }
+                } catch (e) {
+                    console.warn('儲存方式 B（分塊）失敗：', e);
+                }
+            }
+
+            console.log(`[storeMedia] ${key}: ${persisted ? '成功（' + method + '）' : '失敗，僅限本次使用期間'}`);
+            urlCache[key] = URL.createObjectURL(typed);
+            return persisted;
+        }
+
+        // blob URL 快取：fileKey -> blob: 網址
+        const urlCache = {};
+        function dropUrlCache(key) {
+            if (key && urlCache[key]) {
+                URL.revokeObjectURL(urlCache[key]);
+                delete urlCache[key];
+            }
+        }
+        // 把專案的 videoFileKey / imageFileKey 轉成可播放的 blob URL
+        async function resolveMediaUrls(list) {
+            for (const p of list) {
+                for (const [keyField, urlField] of [['videoFileKey', 'video'], ['imageFileKey', 'image']]) {
+                    const key = p[keyField];
+                    if (!key) continue;
+                    try {
+                        if (!urlCache[key]) {
+                            const blob = await getFile(key);
+                            if (blob) urlCache[key] = URL.createObjectURL(blob);
+                        }
+                    } catch (err) {
+                        console.error('讀取檔案失敗', key, err);
+                    }
+                    if (urlCache[key]) {
+                        p[urlField] = urlCache[key];
+                    } else {
+                        // 讀不回來：影片保留為「遺失標記」，讓畫面明確報錯，而不是默默變成照片
+                        p[urlField] = (urlField === 'video') ? MISSING_URL : '';
+                    }
+                }
+            }
+        }
+
+        // ==================== 資料 ====================
+        const STORAGE_KEY = 'imperia_projects_v5';
+        const FALLBACK_POSTER = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=1200&auto=format&fit=crop';
+        const PLACEHOLDER_BIG = 'https://placehold.co/800x500/1e293b/cbd5e1?text=Media+Preview';
+        const PLACEHOLDER_SMALL = 'https://placehold.co/100x80/1e293b/cbd5e1?text=Video';
+        const FULL_VIDEO_ESTIMATE = 15; // 尚未得知實際長度時的預估秒數
+
+        const defaultProjects = [
+            {
+                id: 'proj-1',
+                title: '霓虹幻影：未來都市夜景',
+                category: '視覺特效 / 3D 渲染',
+                image: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1200&auto=format&fit=crop',
+                video: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+                videoFileKey: '', imageFileKey: '',
+                photoDuration: 5,
+                videoDuration: 'full',
+                description: '結合先進光線追蹤技術與賽博龐克美學，呈現充滿張力的未來都市夜景。每一個鏡頭都經過精密調色與動態過場處理。',
+                date: '2026-03-01'
+            },
+            {
+                id: 'proj-2',
+                title: '深海奇航：沉沒的文明',
+                category: '沈浸式體驗 / 概念設計',
+                image: 'https://images.unsplash.com/photo-1682687220063-4742bd7fd538?q=80&w=1200&auto=format&fit=crop',
+                video: 'https://www.w3schools.com/html/mov_bbb.mp4',
+                videoFileKey: '', imageFileKey: '',
+                photoDuration: 5,
+                videoDuration: '10',
+                description: '深海未知的神祕遺跡，運用擬真流體動力學與沉浸式音效，帶領觀者深入海底失落國度。',
+                date: '2026-03-05'
+            },
+            {
+                id: 'proj-3',
+                title: '星際漫遊者：孤獨航行',
+                category: '太空科幻 / 動態腳本',
+                image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop',
+                video: '',
+                videoFileKey: '', imageFileKey: '',
+                photoDuration: 5,
+                videoDuration: 'full',
+                description: '在無垠的宇宙星河中，探尋人類起源與未來的史詩級視覺短片作品。',
+                date: '2026-03-10'
+            }
+        ];
+
+        // 已失效的範例影片網址 → 替換為可用的公開範例（舊資料也會自動遷移）
+        const DEAD_SAMPLE_URLS = {
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4': 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4': 'https://www.w3schools.com/html/mov_bbb.mp4'
+        };
+
+        function loadProjects() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach(p => { if (DEAD_SAMPLE_URLS[p.video]) p.video = DEAD_SAMPLE_URLS[p.video]; });
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error('讀取 localStorage 失敗', e);
+            }
+            return JSON.parse(JSON.stringify(defaultProjects));
+        }
+
+        // ==================== 狀態 ====================
+        let projects = loadProjects();
+        let currentView = 'showcase';
+        let transitionMode = 'flip';
+        let activeBookIndex = 0;
+
+        let isReelPlaying = false;
+        let reelCurrentIndex = 0;
+        let reelTimer = null;
+        let reelTick = null;
+        let pendingDeleteId = null;
+
+        // 表單暫存的檔案
+        let pendingVideoFile = null;
+        let pendingImageFile = null;
+        let pendingThumbPromise = null;
+        let thumbIsAuto = false;
+
+        // 影片實際長度快取 (id -> 秒)，供「完整播放」計算時間軸
+        const reelDurations = {};
+
+        function getItemDuration(p) {
+            if (p.video) {
+                if (p.videoDuration === 'full') return reelDurations[p.id] || FULL_VIDEO_ESTIMATE;
+                return parseInt(p.videoDuration) || 5;
+            }
+            return parseInt(p.photoDuration) || 5;
+        }
+
+        // ==================== 儲存 ====================
+        function persistProjects() {
+            // blob: 網址不可存進 localStorage（重新整理後即失效）
+            const clean = projects.map(p => ({
+                ...p,
+                video: p.videoFileKey ? '' : p.video,
+                image: p.imageFileKey ? '' : p.image
+            }));
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+                return true;
+            } catch (e) {
+                console.error(e);
+                showToast('儲存失敗：瀏覽器空間不足', 'warning');
+                return false;
+            }
+        }
+
+        // ==================== Toast ====================
+        let toastTimer = null;
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+
+            msgEl.textContent = message;
+            iconEl.className = type === 'success'
+                ? 'fa-solid fa-circle-check text-emerald-400 text-lg'
+                : 'fa-solid fa-triangle-exclamation text-amber-400 text-lg';
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ==================== 檔案選擇 ====================
+        function handleImageFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 20 * 1024 * 1024) {
+                showToast('圖片檔案過大（上限 20MB）', 'warning');
+                return;
+            }
+            pendingImageFile = file;
+            thumbIsAuto = false;
+            document.getElementById('project-image').value = '';
+            document.getElementById('image-file-label').textContent = `已選擇: ${file.name}`;
+            showToast('圖片載入成功！');
+        }
+
+        function handleVideoFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 150 * 1024 * 1024) {
+                showToast('影片檔案過大（上限 150MB）', 'warning');
+                return;
+            }
+
+            pendingVideoFile = file;
+            document.getElementById('project-video').value = '';
+            document.getElementById('video-file-label').textContent = `已選擇: ${file.name}`;
+
+            // 若使用者尚未選擇海報，嘗試自動擷取縮圖
+            const imgUrlFilled = document.getElementById('project-image').value.trim() !== '';
+            if (!pendingImageFile || thumbIsAuto) {
+                if (!imgUrlFilled) {
+                    pendingThumbPromise = captureThumbnail(file).then(blob => {
+                        if (blob && (!pendingImageFile || thumbIsAuto)) {
+                            pendingImageFile = blob;
+                            thumbIsAuto = true;
+                            document.getElementById('image-file-label').textContent = '已自動擷取影片縮圖';
+                        }
+                    }).catch(() => {});
+                }
+            }
+            // 立即檢測這個檔案瀏覽器能不能解碼，並把結果顯示在欄位上
+            const label = document.getElementById('video-file-label');
+            const info = `${file.name} (${file.type || '未知型別'})`;
+            label.textContent = `檢測中… ${info}`;
+            probeVideo(file).then(r => {
+                if (pendingVideoFile !== file) return;   // 使用者已改選別的檔案
+                if (r.ok) {
+                    label.textContent = `✅ 可播放：${info}，${r.w}×${r.h}，${Math.round(r.d)} 秒`;
+                    showToast('影片檢測通過，瀏覽器可以解碼！');
+                } else {
+                    label.textContent = `❌ ${r.reason}：${info}`;
+                    showToast(r.reason, 'warning');
+                }
+            });
+        }
+
+        // 檢測影片檔：是否能讀到 metadata 且有可解碼的畫面
+        function probeVideo(file) {
+            return new Promise((resolve) => {
+                const url = URL.createObjectURL(file);
+                const v = document.createElement('video');
+                let done = false;
+                const finish = (r) => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(t);
+                    URL.revokeObjectURL(url);
+                    resolve(r);
+                };
+                const t = setTimeout(() => finish({ ok: false, reason: '讀取逾時：瀏覽器無法解析此檔案（可能是不支援的編碼）' }), 10000);
+                v.preload = 'metadata';
+                v.muted = true;
+                v.playsInline = true;
+                v.onloadedmetadata = () => {
+                    if (!v.videoWidth) {
+                        finish({ ok: false, reason: '只讀到聲音、沒有可解碼的畫面（常見於 HEVC/H.265 編碼）' });
+                    } else {
+                        finish({ ok: true, w: v.videoWidth, h: v.videoHeight, d: v.duration });
+                    }
+                };
+                v.onerror = () => finish({ ok: false, reason: describeMediaError(v) });
+                v.src = url;
+            });
+        }
+
+        // 從影片檔擷取一張縮圖 (回傳 Blob；失敗則 resolve(null))
+        function captureThumbnail(file) {
+            return new Promise((resolve) => {
+                const url = URL.createObjectURL(file);
+                const v = document.createElement('video');
+                let done = false;
+                const finish = (blob) => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(guard);
+                    URL.revokeObjectURL(url);
+                    resolve(blob);
+                };
+                const guard = setTimeout(() => finish(null), 8000);
+
+                v.muted = true;
+                v.playsInline = true;
+                v.preload = 'auto';
+                v.addEventListener('error', () => finish(null));
+                v.addEventListener('loadedmetadata', () => {
+                    const d = v.duration;
+                    v.currentTime = (isFinite(d) && d > 0) ? Math.min(1, d / 2) : 0.1;
+                });
+                v.addEventListener('seeked', () => {
+                    try {
+                        const w = v.videoWidth || 640;
+                        const h = v.videoHeight || 360;
+                        const scale = Math.min(1, 1280 / w);
+                        const c = document.createElement('canvas');
+                        c.width = Math.round(w * scale);
+                        c.height = Math.round(h * scale);
+                        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+                        c.toBlob(b => finish(b), 'image/jpeg', 0.85);
+                    } catch (e) {
+                        finish(null);
+                    }
+                }, { once: true });
+                v.src = url;
+                v.load();
+            });
+        }
+
+        // ==================== 視圖切換 ====================
+        function switchView(view) {
+            currentView = view;
+            const views = {
+                showcase: document.getElementById('view-showcase'),
+                videoreel: document.getElementById('view-videoreel'),
+                admin: document.getElementById('view-admin')
+            };
+            const btns = {
+                showcase: document.getElementById('nav-showcase-btn'),
+                videoreel: document.getElementById('nav-videoreel-btn'),
+                admin: document.getElementById('nav-admin-btn')
+            };
+            const inactive = 'px-4 py-2 rounded-xl text-sm font-medium transition-all text-gray-400 hover:text-white hover:bg-gray-800/60 flex items-center space-x-2';
+            const active = 'px-4 py-2 rounded-xl text-sm font-medium transition-all bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center space-x-2';
+
+            if (view !== 'videoreel') stopVideoReel();
+
+            Object.keys(views).forEach(k => {
+                views[k].classList.add('hidden');
+                btns[k].className = inactive;
+            });
+            views[view].classList.remove('hidden');
+            btns[view].className = active;
+
+            if (view === 'showcase') renderShowcase();
+            else if (view === 'videoreel') renderVideoReelStudio();
+            else renderAdminTable();
+        }
+
+        function setTransitionMode(mode) {
+            transitionMode = mode;
+            const flipBtn = document.getElementById('mode-flip-btn');
+            const filmBtn = document.getElementById('mode-film-btn');
+            const base = 'w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center space-x-2 ';
+
+            if (mode === 'flip') {
+                flipBtn.className = base + 'bg-amber-500 text-darkBg shadow-lg shadow-amber-500/30';
+                filmBtn.className = base + 'text-gray-400 hover:text-white';
+            } else {
+                filmBtn.className = base + 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30';
+                flipBtn.className = base + 'text-gray-400 hover:text-white';
+            }
+            renderShowcase();
+        }
+
+        // ==================== 展示大廳 ====================
+        function renderShowcase() {
+            const container = document.getElementById('showcase-display-area');
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 space-y-4">
+                        <div class="w-16 h-16 bg-gray-800 text-gray-500 rounded-2xl mx-auto flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-folder-open"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white">目前尚無任何作品</h3>
+                        <p class="text-gray-400 text-sm">請前往「後台管理系統」新增您的第一個作品。</p>
+                        <button onclick="switchView('admin')" class="px-6 py-2.5 rounded-xl bg-amber-500 text-darkBg text-sm font-bold shadow-lg">立即新增作品</button>
+                    </div>
+                `;
+                return;
+            }
+            if (transitionMode === 'flip') renderBookFlipView(container);
+            else renderFilmstripView(container);
+        }
+
+        function durLabel(v) { return v === 'full' ? '完整' : v + 's'; }
+
+        function renderBookFlipView(container) {
+            if (activeBookIndex >= projects.length) activeBookIndex = 0;
+
+            let pagesHtml = '';
+            projects.forEach((proj, idx) => {
+                const isActive = idx === activeBookIndex ? 'active' : '';
+                const displayImage = proj.image && proj.image.trim() !== '' ? proj.image : PLACEHOLDER_BIG;
+
+                pagesHtml += `
+                    <div class="book-page ${isActive} bg-cardBg border border-gray-800 rounded-3xl shadow-2xl p-6 sm:p-10 flex flex-col lg:flex-row gap-8 items-center justify-between" data-index="${idx}">
+                        <div class="w-full lg:w-1/2 space-y-6">
+                            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold">
+                                <i class="fa-solid fa-bookmark"></i>
+                                <span>${esc(proj.category)}</span>
+                            </div>
+                            <h3 class="text-2xl sm:text-4xl font-extrabold text-white cinzel-font">${esc(proj.title)}</h3>
+                            <p class="text-gray-300 text-sm sm:text-base leading-relaxed">${esc(proj.description)}</p>
+                            <div class="flex items-center space-x-4 text-xs text-gray-400">
+                                <span><i class="fa-solid fa-image text-amber-400 mr-1"></i> 照片播放: ${proj.photoDuration || 5}s</span>
+                                <span><i class="fa-solid fa-video text-indigo-400 mr-1"></i> 影片播放: ${durLabel(proj.videoDuration)}</span>
+                            </div>
+                        </div>
+                        <div class="w-full lg:w-1/2 flex flex-col items-center space-y-4">
+                            <div class="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden shadow-xl border border-gray-700/60 group bg-black flex items-center justify-center">
+                                <img src="${esc(displayImage)}" alt="${esc(proj.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" onerror="this.onerror=null;this.src='${PLACEHOLDER_BIG}'">
+                                ${proj.video ? `
+                                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                                        <button onclick="openVideoModal('${esc(proj.id)}')" class="w-16 h-16 rounded-full bg-amber-500 text-darkBg flex items-center justify-center text-xl shadow-xl hover:scale-110 transition-transform">
+                                            <i class="fa-solid fa-play ml-1"></i>
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${proj.video ? `<button onclick="openVideoModal('${esc(proj.id)}')" class="w-full py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-bold border border-indigo-500/30 flex items-center justify-center space-x-2 transition-all"><i class="fa-solid fa-video"></i><span>播放多媒體影片</span></button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = `
+                <div class="w-full space-y-6">
+                    <div class="book-container">${pagesHtml}</div>
+                    <div class="flex items-center justify-center space-x-4 pt-4">
+                        <button onclick="changeBookPage(-1)" class="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <span>上一頁</span>
+                        </button>
+                        <span class="text-sm font-bold text-amber-400 cinzel-font">Page ${activeBookIndex + 1} / ${projects.length}</span>
+                        <button onclick="changeBookPage(1)" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-darkBg text-sm font-bold transition-all flex items-center space-x-2">
+                            <span>下一頁</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function changeBookPage(direction) {
+            activeBookIndex += direction;
+            if (activeBookIndex < 0) activeBookIndex = projects.length - 1;
+            if (activeBookIndex >= projects.length) activeBookIndex = 0;
+            renderShowcase();
+        }
+
+        function renderFilmstripView(container) {
+            let framesHtml = '';
+            projects.forEach((proj, idx) => {
+                const displayImage = proj.image && proj.image.trim() !== '' ? proj.image : PLACEHOLDER_BIG;
+
+                framesHtml += `
+                    <div class="film-frame rounded-2xl p-6 sm:p-8 space-y-6">
+                        <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+                            <span class="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full">${esc(proj.category)}</span>
+                            <span class="text-xs text-gray-500 cinzel-font">FRAME #${idx + 1}</span>
+                        </div>
+                        <div class="relative w-full h-72 sm:h-96 rounded-xl overflow-hidden shadow-2xl group border border-gray-800 bg-black flex items-center justify-center">
+                            <img src="${esc(displayImage)}" alt="${esc(proj.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" onerror="this.onerror=null;this.src='${PLACEHOLDER_BIG}'">
+                            ${proj.video ? `
+                                <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="openVideoModal('${esc(proj.id)}')" class="w-16 h-16 rounded-full bg-amber-500 text-darkBg flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-play ml-1"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="space-y-3">
+                            <h3 class="text-2xl font-bold text-white cinzel-font">${esc(proj.title)}</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed">${esc(proj.description)}</p>
+                            <div class="flex items-center justify-between">
+                                <div class="text-xs text-gray-400">時長設定：相片 ${proj.photoDuration || 5}s / 影片 ${durLabel(proj.videoDuration)}</div>
+                                ${proj.video ? `
+                                    <button onclick="openVideoModal('${esc(proj.id)}')" class="px-4 py-2 rounded-xl bg-indigo-600/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 flex items-center space-x-2 hover:bg-indigo-600/30 transition-all">
+                                        <i class="fa-solid fa-video"></i>
+                                        <span>播放劇照影片</span>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = `
+                <div class="w-full space-y-4">
+                    <div class="text-center text-xs text-gray-400 uppercase tracking-widest"><i class="fa-solid fa-arrows-left-right mr-1"></i> 左右滑動或滾動以瀏覽膠捲底片</div>
+                    <div class="filmstrip-container">${framesHtml}</div>
+                </div>
